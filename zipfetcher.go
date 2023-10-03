@@ -2,37 +2,39 @@ package zipfetcher
 
 import (
 	"github.com/itchyny/timefmt-go"
-	"os"
 )
 
 type ZipFetcher struct {
-	downloader *Downloader
-	parser     *Parser
+	provider ZipProvider
 }
 
-func Create() *ZipFetcher {
-	return &ZipFetcher{
-		downloader: CreateDownloader(),
-		parser:     CreateParser(),
+// default provider - UspsProvider
+func Create(provider ...func(*ZipFetcher)) *ZipFetcher {
+	zf := &ZipFetcher{
+		provider: CreateUspsProvider(),
+	}
+	for _, p := range provider {
+		p(zf)
+	}
+	return zf
+}
+
+func WithProvider(provider ZipProvider) func(*ZipFetcher) {
+	return func(zf *ZipFetcher) {
+		zf.provider = provider
 	}
 }
 
 // GetAllZips return all zips
 func (zf *ZipFetcher) GetAllZips() ([]ZipCode, error) {
-	err := zf.downloader.parseSourcePage()
-
-	defer os.RemoveAll(zf.downloader.XlsPath)
-	err = zf.downloader.downloadXls()
-	if err != nil {
-		return []ZipCode{}, err
-	}
-
-	return zf.parser.ExtractZipsInfo(zf.downloader.XlsPath)
+	return zf.provider.GetZips()
 }
 
 // CheckIfModifiedSince checking if data was modified after the date
+//
+// date format: yyyy-mm-dd
 func (zf *ZipFetcher) CheckIfModifiedSince(date string) (bool, error) {
-	err := zf.downloader.parseSourcePage()
+	modificationDate, err := zf.provider.GetLastModificationDate()
 	if err != nil {
 		return false, err
 	}
@@ -41,7 +43,7 @@ func (zf *ZipFetcher) CheckIfModifiedSince(date string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return clientDate.Before(zf.downloader.PageUpdateDate), nil
+	return clientDate.Before(modificationDate), nil
 }
 
 // GetAllZipsIfModifiedSince return all zips if data was modified after the date.

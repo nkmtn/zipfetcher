@@ -199,11 +199,8 @@ var StateColumn = map[string]int{
 	"Other":             12,
 }
 
-<<<<<<< HEAD
-// CityColumn used to allocate which column in each page contains City
-=======
 // CityColumn used to allocate which column in each page contains city
->>>>>>> origin/main
+//
 // Pay attention military zones data don't contain real physical location
 var CityColumn = map[string]int{
 	"ZIP_DETAIL":        7,
